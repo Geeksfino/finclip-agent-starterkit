@@ -40,7 +40,10 @@ jobs:
       - name: Set lowercase owner name
         id: lowercase
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-      
+
+      - name: List files in context
+        run: ls -la
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
