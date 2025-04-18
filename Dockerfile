@@ -22,6 +22,7 @@ ENV PATH="/root/.bun/bin:${PATH}"
 
 # ---> ADDED: Install uv explicitly <---
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN ls -l /root/.cargo/bin/uv
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install Bun dependencies first
@@ -29,11 +30,11 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 # ---> MODIFIED: Create Python virtual environment using uv <---
-RUN uv venv .venv --python python3
+RUN /root/.cargo/bin/uv venv .venv --python python3
 
 # ---> MODIFIED: Install Python dependencies into the venv using uv <---
 # Use the Python from the created venv
-RUN uv pip install --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
+RUN /root/.cargo/bin/uv pip install --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
 
 # Add the virtual environment's bin directory to the PATH (still useful)
 ENV PATH="/app/.venv/bin:${PATH}"
