@@ -48,8 +48,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ steps.lowercase.outputs.owner }}/finclip-agent:latest
             ghcr.io/${{ steps.lowercase.outputs.owner }}/finclip-agent:${{ github.sha }}
