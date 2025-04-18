@@ -1,4 +1,4 @@
-FROM neuml/txtai:py311
+FROM neuml/txtai-cpu:latest
 
 # Set working directory
 WORKDIR /app
