@@ -21,10 +21,10 @@ ENV PATH="/root/.bun/bin:${PATH}"
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-# Install only missing Python dependencies
-# kb-mcp-server and its deps should be in the base image
-# Add sentence-transformers if needed
-RUN pip install sentence-transformers
+# ---> MODIFIED: Install required Python dependencies <---
+# kb-mcp-server and its deps might not be in the base image or discoverable
+# huggingface_hub is needed for model downloads
+RUN pip install sentence-transformers huggingface_hub kb-mcp-server
 
 # Copy the rest of the application code
 COPY . .
