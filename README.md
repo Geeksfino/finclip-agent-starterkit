@@ -187,150 +187,79 @@ bunx @finogeek/cxagent --inspect --inspect-port 3000
 
 This will open a web interface where you can see the agent's configuration, test its functionality, and ensure everything is set up correctly.
 
-## Troubleshooting
+## Running with Docker (Pre-built Image)
 
-### Common Issues
+This project automatically builds a Docker image and pushes it to the GitHub Container Registry (GHCR) on pushes to the main branch. You can pull and run this pre-built image.
 
-1. **Error about `.gitkeep` file during knowledge base building**
-   ```
-   Error processing file contents/.gitkeep: File format not allowed: .gitkeep
-   ```
-   This is a harmless warning. The `.gitkeep` file is used to ensure the `contents` directory exists in Git, but it's not a valid knowledge base document. You can safely ignore this warning.
+**Prerequisites:**
 
-2. **Warning about embeddings file not found during setup**
-   ```
-   Warning: Embeddings file not found at /path/to/kb.tar.gz
-   ```
-   This warning appears because the knowledge base hasn't been built yet. It will be resolved after you run `bun run kb:package`.
+1.  **Docker:** Ensure Docker Desktop or Docker Engine is installed and running.
+2.  **`.agent.env` File:** Create a file named `.agent.env` in the directory where you will run the `docker run` command. Populate it with necessary environment variables:
+    ```dotenv
+    # Example .agent.env
+    LLM_PROVIDER=openai # Or your chosen provider
+    LLM_API_KEY=sk-your_openai_api_key # Replace with your actual key
+    AGENT_HOST=0.0.0.0
+    AGENT_HTTP_PORT=8080 # Port for API requests
+    AGENT_STREAM_PORT=8081 # Port for streaming responses
+    # Add other required variables for your LLM provider
+    ```
+3.  **Knowledge Base (`kb.tar.gz`):** You need a knowledge base archive file (e.g., `kb.tar.gz`). If you don't have one, you can generate it from the sample files by running `bun run kb:use-samples && bun run kb:package` locally in the project first.
 
-3. **API key issues**
-   If you see errors related to API authentication, make sure you've properly configured your API key in the `.agent.env` file.
+**Steps:**
 
-4. **Command not found errors**
-   If you encounter "command not found" errors, make sure you've completed the setup process with `bun setup:env`.
+1.  **Log in to GitHub Container Registry:**
+    *   Generate a GitHub Personal Access Token (PAT) with the `read:packages` scope. Go to GitHub > Settings > Developer settings > Personal access tokens.
+    *   Log in using your terminal:
+        ```bash
+        docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_PAT
+        ```
+        (Replace `YOUR_GITHUB_USERNAME` and `YOUR_PAT`)
 
-5. **Knowledge base search not working**
-   If `bun run kb:search` doesn't work as expected, try using the direct command:
-   ```bash
-   .venv/bin/kb-search kb.tar.gz "your search query"
-   ```
+2.  **Run the Docker Container:**
+    ```bash
+    docker run \
+      -it \
+      --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p <HOST_HTTP_PORT>:<AGENT_HTTP_PORT> \
+      -p <HOST_STREAM_PORT>:<AGENT_STREAM_PORT> \
+      -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
 
-## Embedding Demo
+    **Replace the placeholders:**
+    *   `<HOST_HTTP_PORT>:<AGENT_HTTP_PORT>`: Map a port on your host machine to the `AGENT_HTTP_PORT` defined in your `.agent.env` (e.g., `-p 8080:8080`).
+    *   `<HOST_STREAM_PORT>:<AGENT_STREAM_PORT>`: Map a port for the streaming connection, matching `AGENT_STREAM_PORT` (e.g., `-p 8081:8081`).
+    *   `"/path/to/your/kb.tar.gz"`: The **absolute path** to your local `kb.tar.gz` file.
 
-This project includes a demo showing how to embed the FinClip chat widget in web applications. For more information, see the [embedding demo README](./embedding-demo/README.md).
+3.  **Test the Agent:**
+    Once the container is running, you can interact with it using `curl` or other API tools pointed at `http://localhost:<HOST_HTTP_PORT>`. Remember to use the `/createSession` endpoint for the first message and `/chat` for subsequent messages (see [API Usage](#api-usage) section).
 
-You can run the embedding demo using one of the following commands:
+#### Running in Debug Mode (`--inspect`)
 
-```bash
-# Using Python HTTP server (recommended)
-bun run serve:python
+To run the container with the Node.js/Bun inspector enabled for debugging:
 
-# Using Nginx (requires Nginx to be installed)
-bun run serve:nginx
-```
-
-## Knowledge Base Management
-
-### Interactive Mode
-
-The finclip-agent includes an interactive script for managing your knowledge base:
-
-```bash
-# Start the interactive knowledge base management tool
-bun run kb:interactive
-```
-
-This tool guides you through the process of building, exporting, and searching your knowledge base with a simple menu interface. It also offers to update your MCP configuration automatically after building or exporting the knowledge base.
-
-### Direct Commands
-
-If you prefer direct access to the knowledge base tools, you can use these commands:
+1.  **Expose the Debug Port:** Add `-p 9229:9229` to the `docker run` command.
+2.  **Override the Command:** Append the command override to the `docker run` command to include the `--inspect` flag.
 
 ```bash
-# Build the knowledge base from documents in the content directory
-bun run kb:build
-
-# Build with debug output
-bun run kb:build:debug
-
-# Search the knowledge base interactively
-bun run kb:search
-
-# Search with graph-based retrieval
-bun run kb:search:graph
-
-# Export the knowledge base for distribution
-bun run kb:package
+docker run \
+  -it \
+  --rm \
+  --name finclip-agent-debug \
+  --env-file .agent.env \
+  -p <HOST_HTTP_PORT>:<AGENT_HTTP_PORT> \
+  -p <HOST_STREAM_PORT>:<AGENT_STREAM_PORT> \
+  -p 9229:9229 \
+  -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+  ghcr.io/geeksfino/finclip-agent:latest \
+  bun --inspect=0.0.0.0:9229 run start 
 ```
 
-These commands use the configuration in `kb.yml`. After packaging the knowledge base, the `finclip.tar.gz` file will be created, which is used by the MCP server.
+*   Replace ports and paths as described in the standard run command.
+*   You can then attach a Node.js debugger (e.g., from VS Code or Chrome DevTools) to `localhost:9229`.
 
-## Running the Agent
-
-```bash
-# Start the agent
-bunx @finogeek/cxagent
-```
-
-## Embedding the Chat Widget
-
-Create an HTML file with the following content:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finclip Agent Chat</title>
-</head>
-<body>
-  <h1>Finclip Agent Chat</h1>
-  
-  <script 
-    src="./node_modules/@finogeek/cxagent/web/dist/finclip-chat.js" 
-    data-finclip-chat 
-    data-api-url="http://localhost:5678" 
-    data-streaming-url="http://localhost:5679"
-  ></script>
-</body>
-</html>
-```
-
-Open this HTML file in your browser to interact with the agent.
-
-## Project Structure
-
-- `setup.sh`: Installs Bun, checks Python, installs uv, and sets up the environment
-- `download-models.js`: Downloads required models from Hugging Face based on kb.yml
-- `generate-config.js`: Generates the MCP configuration for kb-mcp-server
-- `index.js`: Main script that runs all setup steps in sequence
-
-## Requirements
-
-- [Bun](https://bun.sh/) runtime (v1.0.0 or higher)
-- Python 3.9+ with pip
-- Internet connection for downloading models
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Model download fails**:
-   - Check your internet connection
-   - Ensure you have enough disk space
-   - Try running `bun run download-models` again
-
-2. **Configuration generation fails**:
-   - Make sure kb-mcp-server is installed correctly
-   - Check that the virtual environment is activated
-
-3. **Agent doesn't start**:
-   - Verify your API key in `.agent.env`
-   - Check that the embeddings file exists at the specified path
-
-## Advanced Configuration
-
-For advanced configuration options, refer to:
-- [finclip-agent Documentation](https://github.com/Geeksfino/finclip-agent)
-- [kb-mcp-server Documentation](https://github.com/Geeksfino/kb-mcp-server)
+## Building Docker Image Locally
+{{ ... }}

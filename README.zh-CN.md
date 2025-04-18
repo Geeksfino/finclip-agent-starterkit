@@ -194,33 +194,90 @@ bunx @finogeek/cxagent --inspect --inspect-port 3000
 
 这将打开一个网页界面，您可以在其中查看代理的配置，测试其功能，并确保一切设置正确。
 
-## 故障排除
+## 本地运行 Agent
 
-### 常见问题
+```bash
+# 启动代理
+bunx @finogeek/cxagent
+```
 
-1. **构建知识库时关于 `.gitkeep` 文件的错误**
-   ```
-   Error processing file contents/.gitkeep: File format not allowed: .gitkeep
-   ```
-   这是一个无害的警告。`.gitkeep` 文件用于确保 `contents` 目录在 Git 中存在，但它不是有效的知识库文档。您可以安全地忽略此警告。
+## 使用 Docker 运行 (预构建镜像)
 
-2. **设置过程中关于找不到嵌入文件的警告**
-   ```
-   Warning: Embeddings file not found at /path/to/kb.tar.gz
-   ```
-   此警告出现是因为知识库尚未构建。运行 `bun run kb:package` 后将解决此问题。
+本项目会在推送代码到主分支时自动构建 Docker 镜像并推送到 GitHub Container Registry (GHCR)。您可以拉取并运行这个预构建的镜像。
 
-3. **API 密钥问题**
-   如果您看到与 API 认证相关的错误，请确保您已在 `.agent.env` 文件中正确配置了 API 密钥。
+**先决条件:**
 
-4. **命令未找到错误**
-   如果遇到“命令未找到”错误，请确保您已使用 `bun setup:env` 完成设置过程。
+1.  **Docker:** 确保已安装并运行 Docker Desktop 或 Docker Engine。
+2.  **`.agent.env` 文件:** 在您将要运行 `docker run` 命令的目录下创建一个名为 `.agent.env` 的文件。填入必要的环境变量：
+    ```dotenv
+    # 示例 .agent.env 文件
+    LLM_PROVIDER=openai # 或者您选择的大模型提供商
+    LLM_API_KEY=sk-your_openai_api_key # 替换为您的真实 API Key
+    AGENT_HOST=0.0.0.0
+    AGENT_HTTP_PORT=8080 # API 请求端口
+    AGENT_STREAM_PORT=8081 # 流式响应端口
+    # 添加您的 LLM 提供商所需的其他变量
+    ```
+3.  **知识库 (`kb.tar.gz`):** 您需要一个知识库归档文件 (例如 `kb.tar.gz`)。如果您没有，可以先在项目本地运行 `bun run kb:use-samples && bun run kb:package` 来从示例文件生成。
 
-5. **知识库搜索不工作**
-   如果 `bun run kb:search` 不按预期工作，请尝试使用直接命令：
-   ```bash
-   .venv/bin/kb-search kb.tar.gz "您的搜索查询"
-   ```
+**步骤:**
+
+1.  **登录 GitHub Container Registry (GHCR):**
+    *   生成一个具有 `read:packages` 权限范围的 GitHub 个人访问令牌 (PAT)。前往 GitHub > Settings > Developer settings > Personal access tokens。
+    *   使用您的终端登录：
+        ```bash
+        docker login ghcr.io -u 您的GitHub用户名 -p 您的PAT
+        ```
+        (请替换 `您的GitHub用户名` 和 `您的PAT`)
+
+2.  **运行 Docker 容器:**
+    ```bash
+    docker run \
+      -it \
+      --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p <主机HTTP端口>:<容器HTTP端口> \
+      -p <主机Stream端口>:<容器Stream端口> \
+      -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
+    **替换占位符:**
+    *   `<主机HTTP端口>:<容器HTTP端口>`: 将您主机上的一个端口映射到 `.agent.env` 文件中定义的 `AGENT_HTTP_PORT` (例如: `-p 8080:8080`)。
+    *   `<主机Stream端口>:<容器Stream端口>`: 为流式连接映射端口，匹配 `AGENT_STREAM_PORT` (例如: `-p 8081:8081`)。
+    *   `"/path/to/your/kb.tar.gz"`: 您本地 `kb.tar.gz` 文件的**绝对路径**。
+
+3.  **测试 Agent:**
+    容器运行后，您可以使用 `curl` 或其他 API 工具，将请求指向 `http://localhost:<主机HTTP端口>` 与 Agent 交互。请记住，第一条消息必须使用 `/createSession` 端点发送，后续消息则使用 `/chat` 端点发送（详情请参阅 [API 用法](#api-用法) 部分）。
+
+#### 运行调试模式 (`--inspect`)
+
+如果您需要在 Docker 容器内对 Node.js/Bun 进程进行调试：
+
+1.  **暴露调试端口:** 在 `docker run` 命令中添加 `-p 9229:9229`。
+2.  **覆盖启动命令:** 在 `docker run` 命令末尾添加启动命令并包含 `--inspect` 标志。
+
+```bash
+docker run \
+  -it \
+  --rm \
+  --name finclip-agent-debug \
+  --env-file .agent.env \
+  -p <主机HTTP端口>:<容器HTTP端口> \
+  -p <主机Stream端口>:<容器Stream端口> \
+  -p 9229:9229 \
+  -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+  ghcr.io/geeksfino/finclip-agent:latest \
+  bun --inspect=0.0.0.0:9229 run start 
+```
+
+*   请像标准运行命令中那样替换端口和路径。
+*   启动后，您可以将 Node.js 调试器（例如 VS Code 或 Chrome DevTools 中的调试器）连接到您主机上的 `localhost:9229`。
+
+## API 用法
+
+{{ ... }}
 
 ## 嵌入演示
 
