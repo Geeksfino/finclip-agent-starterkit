@@ -38,7 +38,7 @@ ENV IN_DOCKER=true
 RUN bun setup:env
 
 # Build knowledge base (if not already built)
-RUN if [ ! -f kb.tar.gz ]; then bun run kb:use-samples && bun run kb:package; fi
+# RUN if [ ! -f kb.tar.gz ]; then bun run kb:use-samples && bun run kb:package; fi
 
 # Expose the default port
 EXPOSE 3000
