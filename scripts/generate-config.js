@@ -19,27 +19,40 @@ if (!fs.existsSync(confDir)) {
 // Find the path to kb-mcp-server in the virtual environment
 const findKbMcpServerPath = () => {
   return new Promise((resolve, reject) => {
-    const pythonPath = path.join(projectDir, '.venv', 'bin', 'python');
-    
-    const process = spawn(pythonPath, [
-      '-c',
-      `
+    // ---> MODIFIED: Determine paths and script based on IN_DOCKER <---
+    const isInDocker = process.env.IN_DOCKER === 'true';
+    const pythonPath = isInDocker ? 'python3' : path.join(projectDir, '.venv', 'bin', 'python');
+    console.log(`ℹ️ Using Python path for finding kb-mcp-server: ${pythonPath}`);
+
+    const pythonScriptDocker = `
+import sys
+import shutil
+path = shutil.which('kb-mcp-server')
+if path:
+    print(path)
+else:
+    print("ERROR: kb-mcp-server not found in PATH")
+    sys.exit(1)
+    `;
+
+    const pythonScriptLocal = `
 import os
 import sys
-import site
-
-# Get the site-packages directory
-site_packages = site.getsitepackages()[0]
-
-# Find the kb-mcp-server executable
-bin_dir = os.path.join(os.path.dirname(os.path.dirname(sys.executable)), 'bin')
+# sys.executable should be /app/.venv/bin/python
+bin_dir = os.path.dirname(sys.executable)
 kb_mcp_server_path = os.path.join(bin_dir, 'kb-mcp-server')
-
 if os.path.exists(kb_mcp_server_path):
     print(kb_mcp_server_path)
 else:
-    print("ERROR: kb-mcp-server not found")
-      `
+    print(f"ERROR: kb-mcp-server not found in {bin_dir}")
+    sys.exit(1)
+    `;
+
+    const pythonScript = isInDocker ? pythonScriptDocker : pythonScriptLocal;
+
+    const process = spawn(pythonPath, [
+      '-c',
+      pythonScript
     ]);
 
     let output = '';
