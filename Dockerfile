@@ -24,13 +24,11 @@ RUN bun install --frozen-lockfile
 # ---> MODIFIED: Install required Python dependencies <---
 # kb-mcp-server and its deps might not be in the base image or discoverable
 # huggingface_hub is needed for model downloads
-RUN pip install sentence-transformers huggingface_hub kb-mcp-server
-
-# Copy the rest of the application code
 COPY . .
 
-# Set up environment
-RUN bun setup:env
+# ---> MODIFIED: Install Python deps and run setup in same step <---
+RUN pip install sentence-transformers huggingface_hub kb-mcp-server && \
+    bun setup:env
 
 # Build knowledge base (if not already built)
 RUN if [ ! -f kb.tar.gz ]; then bun run kb:use-samples && bun run kb:package; fi
