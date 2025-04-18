@@ -33,13 +33,15 @@ RUN bun install --frozen-lockfile
 # ---> MODIFIED: Create Python virtual environment using uv <---
 RUN /root/.local/bin/uv venv .venv --python python3
 
-# ---> MODIFIED: Set compiler flags for ARM build <--- 
-ENV CFLAGS="-march=armv8-a+dotprod"
-ENV CXXFLAGS="-march=armv8-a+dotprod"
-
-# ---> MODIFIED: Install Python dependencies into the venv using uv <--- 
+# ---> MODIFIED: Install Python dependencies conditionally setting ARM flags <---
+# Declare TARGETPLATFORM as an argument provided by buildx
+ARG TARGETPLATFORM
 # Use the Python from the created venv
-RUN /root/.local/bin/uv pip install -vv --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
+# Set ARM flags only if building for linux/arm64
+RUN CFLAGS_FOR_ARM="$(if [ "$TARGETPLATFORM" = "linux/arm64" ]; then echo -march=armv8-a+dotprod; fi)" \
+    CXXFLAGS_FOR_ARM="$(if [ "$TARGETPLATFORM" = "linux/arm64" ]; then echo -march=armv8-a+dotprod; fi)" \
+    CFLAGS="$CFLAGS_FOR_ARM" CXXFLAGS="$CXXFLAGS_FOR_ARM" \
+    /root/.local/bin/uv pip install -vv --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
 
 # Add the virtual environment's bin directory to the PATH (still useful)
 ENV PATH="/app/.venv/bin:${PATH}"
