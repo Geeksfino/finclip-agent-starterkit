@@ -33,7 +33,11 @@ RUN bun install --frozen-lockfile
 # ---> MODIFIED: Create Python virtual environment using uv <---
 RUN /root/.local/bin/uv venv .venv --python python3
 
-# ---> MODIFIED: Install Python dependencies into the venv using uv <---
+# ---> MODIFIED: Set compiler flags for ARM build <--- 
+ENV CFLAGS="-march=armv8-a+dotprod"
+ENV CXXFLAGS="-march=armv8-a+dotprod"
+
+# ---> MODIFIED: Install Python dependencies into the venv using uv <--- 
 # Use the Python from the created venv
 RUN /root/.local/bin/uv pip install -vv --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
 
