@@ -50,21 +50,22 @@ else:
 
     const pythonScript = isInDocker ? pythonScriptDocker : pythonScriptLocal;
 
-    const process = spawn(pythonPath, [
+    // ---> MODIFIED: Renamed 'process' variable to 'pyProcess' to avoid shadowing global <---
+    const pyProcess = spawn(pythonPath, [
       '-c',
       pythonScript
     ]);
 
     let output = '';
-    process.stdout.on('data', (data) => {
+    pyProcess.stdout.on('data', (data) => {
       output += data.toString();
     });
 
-    process.stderr.on('data', (data) => {
+    pyProcess.stderr.on('data', (data) => {
       console.error(data.toString().trim());
     });
 
-    process.on('close', (code) => {
+    pyProcess.on('close', (code) => {
       if (code === 0 && !output.includes('ERROR')) {
         resolve(output.trim());
       } else {
