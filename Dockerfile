@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     cmake \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Bun
@@ -34,7 +35,7 @@ RUN /root/.local/bin/uv venv .venv --python python3
 
 # ---> MODIFIED: Install Python dependencies into the venv using uv <---
 # Use the Python from the created venv
-RUN /root/.local/bin/uv pip install --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
+RUN /root/.local/bin/uv pip install -vv --no-cache-dir kb-mcp-server sentence-transformers -p /app/.venv/bin/python3
 
 # Add the virtual environment's bin directory to the PATH (still useful)
 ENV PATH="/app/.venv/bin:${PATH}"
