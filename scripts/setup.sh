@@ -39,15 +39,20 @@ else
   echo "✅ uv installed successfully"
 fi
 
-# Create and activate a virtual environment for Python packages
-echo "⏳ Creating Python virtual environment..."
-python3 -m venv .venv
-source .venv/bin/activate
+# ---> MODIFIED: Conditionally create venv and install packages only if not IN_DOCKER <--- 
+if [ -z "$IN_DOCKER" ]; then
+  # Create and activate a virtual environment for Python packages
+  echo "⏳ Creating Python virtual environment..."
+  python3 -m venv .venv
+  source .venv/bin/activate
 
-# Install kb-mcp-server using uv
-echo "⏳ Installing kb-mcp-server..."
-uv pip install kb-mcp-server
-echo "✅ kb-mcp-server installed successfully"
+  # Install kb-mcp-server using uv
+  echo "⏳ Installing kb-mcp-server into .venv..."
+  uv pip install kb-mcp-server
+  echo "✅ kb-mcp-server installed successfully into .venv"
+else
+  echo "⏩ Skipping .venv creation and local pip install (IN_DOCKER is set)."
+fi
 
 # Install @finogeek/cxagent using Bun
 echo "⏳ Installing @finogeek/cxagent..."
