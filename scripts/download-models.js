@@ -35,8 +35,10 @@ const checkModelExists = (model) => {
   return new Promise((resolve, reject) => {
     console.log(`🔍 Checking if model already exists: ${model}...`);
     
-    // Use the virtual environment Python
-    const pythonPath = path.join(process.cwd(), '.venv', 'bin', 'python');
+    // Determine Python path based on IN_DOCKER env var
+    const isInDocker = process.env.IN_DOCKER === 'true';
+    const pythonPath = isInDocker ? 'python3' : path.join(process.cwd(), '.venv', 'bin', 'python');
+    console.log(`ℹ️ Using Python path: ${pythonPath}`);
     
     const pythonProcess = spawn(pythonPath, [
       '-c',
@@ -106,9 +108,11 @@ const downloadModel = (model) => {
   return new Promise((resolve, reject) => {
     console.log(`⏳ Downloading model: ${model}...`);
     
-    // Use the virtual environment Python
-    const pythonPath = path.join(process.cwd(), '.venv', 'bin', 'python');
-    
+    // Determine Python path based on IN_DOCKER env var
+    const isInDocker = process.env.IN_DOCKER === 'true';
+    const pythonPath = isInDocker ? 'python3' : path.join(process.cwd(), '.venv', 'bin', 'python');
+    console.log(`ℹ️ Using Python path: ${pythonPath}`);
+
     const pythonProcess = spawn(pythonPath, [
       '-c',
       `
