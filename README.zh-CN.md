@@ -248,6 +248,31 @@ bunx @finogeek/cxagent
     *   `<主机Stream端口>:<容器Stream端口>`: 为流式连接映射端口，匹配 `AGENT_STREAM_PORT` (例如: `-p 8081:8081`)。
     *   `"/path/to/your/kb.tar.gz"`: 您本地 `kb.tar.gz` 文件的**绝对路径**。
 
+### 配置 NATS 连接 (可选)
+
+默认情况下，代理期望 NATS 服务器（如果在其内部配置中启用）位于 `nats://localhost:4222`。这适用于本地开发，但在 Docker 内部通常不起作用。
+
+要将 Docker 容器连接到在其他地方运行的 NATS 服务器，请将 `AGENT_NATS_URL` 变量添加到您的 `.agent.env` 文件中。此变量优先于代理配置中的默认值。
+
+*   **NATS 在 Docker 主机上运行:** 如果您的 NATS 服务器直接在托管 Docker 的机器上运行：
+    ```dotenv
+    AGENT_NATS_URL=nats://host.docker.internal:4222
+    ```
+    *注意：在 Docker Desktop (Mac/Windows) 上，`host.docker.internal` 会解析为主机在容器内部的 IP 地址。对于 Linux，您可能需要在 `docker run` 命令中使用 `--add-host=host.docker.internal:host-gateway` 或使用主机的特定网络 IP。*
+
+*   **NATS 在另一个 Docker 容器中运行:** 如果 NATS 在同一 Docker 网络上的另一个容器中运行（例如，通过 Docker Compose）：
+    ```dotenv
+    AGENT_NATS_URL=nats://<nats-service-name>:4222
+    ```
+    (将 `<nats-service-name>` 替换为您的 `docker-compose.yml` 中定义的服务名称，或者如果在同一个用户定义的桥接网络上，则替换为容器名称）。
+
+*   **远程 NATS 服务器:** 如果 NATS 在可通过网络访问的不同机器上运行：
+    ```dotenv
+    AGENT_NATS_URL=nats://<remote-nats-ip-or-hostname>:4222
+    ```
+
+如果 `.agent.env` 文件中*未*设置 `AGENT_NATS_URL`，代理将尝试使用默认值 (`nats://localhost:4222`)，除非 NATS 运行在*同一个*容器内，否则这很可能会失败。
+
 3.  **测试 Agent:**
     容器运行后，您可以使用 `curl` 或其他 API 工具，将请求指向 `http://localhost:<主机HTTP端口>` 与 Agent 交互。请记住，第一条消息必须使用 `/createSession` 端点发送，后续消息则使用 `/chat` 端点发送（详情请参阅 [API 用法](#api-用法) 部分）。
 

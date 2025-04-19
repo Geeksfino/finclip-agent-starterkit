@@ -206,6 +206,31 @@ This project automatically builds a Docker image and pushes it to the GitHub Con
     ```
 3.  **Knowledge Base (`kb.tar.gz`):** You need a knowledge base archive file (e.g., `kb.tar.gz`). If you don't have one, you can generate it from the sample files by running `bun run kb:use-samples && bun run kb:package` locally in the project first.
 
+### Configuring NATS Connection (Optional)
+
+By default, the agent expects the NATS server (if enabled in its internal configuration) to be at `nats://localhost:4222`. This works for local development but not typically inside Docker.
+
+To connect the Docker container to a NATS server running elsewhere, add the `AGENT_NATS_URL` variable to your `.agent.env` file. This variable takes precedence over the default value in the agent's configuration.
+
+*   **NATS on Docker Host:** If your NATS server is running directly on the machine hosting Docker:
+    ```dotenv
+    AGENT_NATS_URL=nats://host.docker.internal:4222
+    ```
+    *Note: `host.docker.internal` resolves to the host's internal IP from within the container on Docker Desktop (Mac/Windows). For Linux, you might need to use `--add-host=host.docker.internal:host-gateway` in your `docker run` command or use the host's specific network IP.* 
+
+*   **NATS in Another Docker Container:** If NATS is running in another container on the same Docker network (e.g., via Docker Compose):
+    ```dotenv
+    AGENT_NATS_URL=nats://<nats-service-name>:4222
+    ```
+    (Replace `<nats-service-name>` with the service name defined in your `docker-compose.yml` or the container name if on the same user-defined bridge network).
+
+*   **Remote NATS Server:** If NATS is running on a different machine accessible over the network:
+    ```dotenv
+    AGENT_NATS_URL=nats://<remote-nats-ip-or-hostname>:4222
+    ```
+
+If `AGENT_NATS_URL` is *not* set in `.agent.env`, the agent will attempt to use the default (`nats://localhost:4222`), which will likely fail unless NATS is running *inside* the same container.
+
 **Steps:**
 
 1.  **Log in to GitHub Container Registry:**
