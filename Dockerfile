@@ -24,6 +24,10 @@ ENV PATH="/root/.local/bin:${PATH}"
 # ---> ADDED: Install missing Python packages globally using uv <---
 RUN uv pip install --system huggingface_hub kb-mcp-server
 
+# Pre-download NLTK data used by kb-mcp-server
+# Ensure Python is available before running this
+RUN python -m nltk.downloader averaged_perceptron_tagger cmudict
+
 # Install Bun dependencies first
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile

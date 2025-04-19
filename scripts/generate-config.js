@@ -110,25 +110,8 @@ async function generateConfig() {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     
     console.log(`✅ Configuration generated at: ${configPath}`);
-    
-    // Create a sample .agent.env file if it doesn't exist
-    const agentEnvPath = path.join(projectDir, '.agent.env');
-    if (!fs.existsSync(agentEnvPath)) {
-      const agentEnvContent = `# LLM Configuration
-LLM_API_KEY=your_api_key_here
-LLM_PROVIDER_URL=https://api.openai.com/v1
-LLM_MODEL=gpt-4o
-LLM_STREAM_MODE=true
 
-# Agent Server Configuration
-AGENT_HOST=localhost
-AGENT_HTTP_PORT=5678
-AGENT_STREAM_PORT=5679
-AGENT_ENABLE_STREAMING=true
-`;
-      fs.writeFileSync(agentEnvPath, agentEnvContent);
-      console.log(`✅ Sample .agent.env file created at: ${agentEnvPath}`);
-    }
+    console.log('Configuration generation complete.');
     
   } catch (error) {
     console.error('❌ Error generating configuration:', error.message);
