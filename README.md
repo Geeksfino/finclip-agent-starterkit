@@ -206,11 +206,13 @@ This project automatically builds a Docker image and pushes it to the GitHub Con
     ```
 3.  **Knowledge Base (`kb.tar.gz`):** You need a knowledge base archive file (e.g., `kb.tar.gz`). If you don't have one, you can generate it from the sample files by running `bun run kb:use-samples && bun run kb:package` locally in the project first.
 
+### About NATS Integration (Optional)
+
+The agent includes an optional NATS Conversation Handler. When enabled (via the agent's internal `nats_conversation_handler.yml` configuration), this handler publishes conversation segments (like user messages and agent responses) to a NATS subject (e.g., `conversation.segments`). This allows external services or monitoring agents to subscribe to these messages for purposes such as real-time compliance checking, logging, analytics, or triggering downstream signaling events based on conversation content. If you need to monitor agent interactions, configuring the NATS connection is necessary.
+
 ### Configuring NATS Connection (Optional)
 
 By default, the agent expects the NATS server (if enabled in its internal configuration) to be at `nats://localhost:4222`. This works for local development but not typically inside Docker.
-
-To connect the Docker container to a NATS server running elsewhere, add the `AGENT_NATS_URL` variable to your `.agent.env` file. This variable takes precedence over the default value in the agent's configuration.
 
 *   **NATS on Docker Host:** If your NATS server is running directly on the machine hosting Docker:
     ```dotenv

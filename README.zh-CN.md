@@ -248,6 +248,10 @@ bunx @finogeek/cxagent
     *   `<主机Stream端口>:<容器Stream端口>`: 为流式连接映射端口，匹配 `AGENT_STREAM_PORT` (例如: `-p 8081:8081`)。
     *   `"/path/to/your/kb.tar.gz"`: 您本地 `kb.tar.gz` 文件的**绝对路径**。
 
+### 关于 NATS 集成 (可选)
+
+该代理包含一个可选的 NATS 对话处理器（NATS Conversation Handler）。当启用时（通过代理内部的 `nats_conversation_handler.yml` 配置文件），此处理器会将对话片段（例如用户消息和代理回复）发布到一个 NATS 主题（subject，例如 `conversation.segments`）。这使得外部服务或监控代理能够订阅这些消息，用于例如实时合规性检查、日志记录、分析或根据对话内容触发下游信号事件等目的。如果您需要监控代理的交互，则需要配置 NATS 连接。
+
 ### 配置 NATS 连接 (可选)
 
 默认情况下，代理期望 NATS 服务器（如果在其内部配置中启用）位于 `nats://localhost:4222`。这适用于本地开发，但在 Docker 内部通常不起作用。
