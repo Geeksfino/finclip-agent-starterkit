@@ -122,6 +122,118 @@ bun setup:env
    bun run generate-config
    ```
 
+## 在不同环境中运行 Agent
+
+根据您的开发或部署需求，您可能会以不同的方式运行 Agent 及其 NATS 依赖项。以下是常见的配置：
+
+**重要提示：** 确保您的 LLM 提供商详细信息（`LLM_PROVIDER_URL`、`LLM_API_KEY`、`LLM_MODEL`）已正确设置，可以在本地运行时在 `.agent.env` 文件中设置，也可以在 Docker 运行时通过环境变量 (`-e`) 传递。
+
+### 1. 本地开发 (Agent + NATS 均在 Docker 外部)
+
+*   **描述：** 直接在您的主机上运行 Agent 和 NATS 服务器。适合初期开发和调试。
+*   **前提条件：**
+    *   本地运行的 NATS 服务器（例如 `nats-server -js`）。
+    *   已安装 Bun。
+    *   已安装依赖项 (`bun install`)。
+*   **NATS 配置：** 确保 `.agent.env` 文件中的 `AGENT_NATS_URL` 指向您的本地 NATS（默认通常是 `nats://localhost:4222`）。
+*   **命令：**
+    ```bash
+    # 启动 Agent
+    bun start
+
+    # 或者使用检查器 UI 启动
+    bun start --inspect
+    ```
+
+### 2. Agent 在 Docker 中，NATS 在本地 (Docker 外部)
+
+*   **描述：** 在 Docker 容器内运行 Agent，连接到直接在主机上运行的 NATS 服务器。
+*   **前提条件：**
+    *   已安装 Docker。
+    *   NATS 服务器在主机本地运行 (`nats-server -js`)。
+    *   已构建 Agent Docker 镜像 (`docker build -t finclip-agent-starterkit .`)。
+*   **NATS 配置：** 将 `AGENT_NATS_URL` 设置为指向 Docker 容器内部的主机。对于 Docker Desktop (Mac/Windows)，请使用 `nats://host.docker.internal:4222`，对于 Linux 上的 Docker，请使用主机的 IP 地址。
+*   **命令：**
+    ```bash
+    # 如有需要，请替换 NATS_URL。假设 .agent.env 包含其他变量。
+    # 端口映射 (-p) 应与 .agent.env 中的 AGENT_HTTP_PORT 和 AGENT_STREAM_PORT 匹配
+    # 确保 kb.tar.gz 和 conf/nats_conversation_handler.yml 文件在本地存在。
+    docker run -it --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://host.docker.internal:4222" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
+### 3. Docker Compose (Agent + NATS)
+
+*   **描述：** 使用 Docker Compose 在容器中一起管理 Agent 和 NATS 服务。推荐用于一致的开发和部署环境。
+*   **前提条件：**
+    *   已安装 Docker 和 Docker Compose。
+    *   一个 `docker-compose.yml` 文件，定义了 `agent` 和 `nats` 服务（您可能需要根据提供的 Dockerfile 创建此文件）。
+*   **NATS 配置：** 在 `docker-compose.yml` 文件中，为 agent 服务设置 `AGENT_NATS_URL` 环境变量，使其指向 NATS 服务名称（例如 `nats://nats:4222`，假设 NATS 服务名为 `nats`）。
+*   **命令：**
+    ```bash
+    # 在包含 docker-compose.yml 的目录中
+    docker compose up
+    # 或者以分离模式运行
+    docker compose up -d
+    ```
+
+### 4. 独立 Agent Docker, NATS 在 Docker 网络中
+
+*   **描述：** 在 Docker 容器内运行 Agent，并连接到 *同样* 运行在单独 Docker 容器中的 NATS 服务器，通常在同一个用户定义的 Docker 网络内。
+*   **前提条件：**
+    *   已安装 Docker。
+    *   NATS 服务器在容器中运行（例如 `docker run --name my-nats -d -p 4222:4222 nats:latest -js`）。
+    *   已构建 Agent Docker 镜像 (`docker build -t finclip-agent-starterkit .`)。
+    *   （可选但推荐）一个用户定义的 Docker 网络 (`docker network create my-network`)，两个容器都连接到该网络。
+*   **NATS 配置：** 将 `AGENT_NATS_URL` 设置为指向 Docker 网络内 NATS 容器的名称或 IP 地址（例如 `nats://my-nats:4222`，如果 NATS 容器名为 `my-nats`）。
+*   **命令：**
+    ```bash
+    # 如有需要，请替换 NATS_URL。假设 .agent.env 包含其他变量。
+    # 假设两个容器都在 'my-network' 网络上。
+    # 端口映射 (-p) 应与 .agent.env 中的 AGENT_HTTP_PORT 和 AGENT_STREAM_PORT 匹配。
+    # 确保 kb.tar.gz 和 conf/nats_conversation_handler.yml 文件在本地存在。
+    docker run -it --rm --network=my-network \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://my-nats:4222" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
+### 5. 独立 Agent Docker, NATS 远程
+
+*   **描述：** 在 Docker 容器中运行 Agent，连接到托管在其他地方（例如，托管的 NATS 服务或其他服务器）的 NATS 服务器。
+*   **前提条件：**
+    *   已安装 Docker。
+    *   已构建 Agent Docker 镜像 (`docker build -t finclip-agent-starterkit .`)。
+    *   远程 NATS 服务器的连接详细信息（主机名/IP、端口、凭据（如有））。
+*   **NATS 配置：** 将 `AGENT_NATS_URL` 设置为远程 NATS 服务器的完整 URL（例如 `nats://user:pass@remote.nats.server.com:4222`）。
+*   **命令：**
+    ```bash
+    # 替换 NATS_URL。假设 .agent.env 包含其他变量。
+    # 端口映射 (-p) 应与 .agent.env 中的 AGENT_HTTP_PORT 和 AGENT_STREAM_PORT 匹配。
+    # 确保 kb.tar.gz 和 conf/nats_conversation_handler.yml 文件在本地存在。
+    docker run -it --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://<user>:<password>@<remote_nats_host>:<remote_nats_port>" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
 ## 配置
 
 设置完成后，您需要：
@@ -214,8 +326,8 @@ bunx @finogeek/cxagent
     LLM_PROVIDER=openai # 或者您选择的大模型提供商
     LLM_API_KEY=sk-your_openai_api_key # 替换为您的真实 API Key
     AGENT_HOST=0.0.0.0
-    AGENT_HTTP_PORT=8080 # API 请求端口
-    AGENT_STREAM_PORT=8081 # 流式响应端口
+    AGENT_HTTP_PORT=5678 # API 请求端口
+    AGENT_STREAM_PORT=5679 # 流式响应端口
     # 添加您的 LLM 提供商所需的其他变量
     ```
 3.  **知识库 (`kb.tar.gz`):** 您需要一个知识库归档文件 (例如 `kb.tar.gz`)。如果您没有，可以先在项目本地运行 `bun run kb:use-samples && bun run kb:package` 来从示例文件生成。
@@ -244,38 +356,9 @@ bunx @finogeek/cxagent
     ```
 
     **替换占位符:**
-    *   `<主机HTTP端口>:<容器HTTP端口>`: 将您主机上的一个端口映射到 `.agent.env` 文件中定义的 `AGENT_HTTP_PORT` (例如: `-p 8080:8080`)。
-    *   `<主机Stream端口>:<容器Stream端口>`: 为流式连接映射端口，匹配 `AGENT_STREAM_PORT` (例如: `-p 8081:8081`)。
+    *   `<主机HTTP端口>:<容器HTTP端口>`: 将您主机上的一个端口映射到 `.agent.env` 文件中定义的 `AGENT_HTTP_PORT` (例如: `-p 5678:5678`)。
+    *   `<主机Stream端口>:<容器Stream端口>`: 为流式连接映射端口，匹配 `AGENT_STREAM_PORT` (例如: `-p 5679:5679`)。
     *   `"/path/to/your/kb.tar.gz"`: 您本地 `kb.tar.gz` 文件的**绝对路径**。
-
-### 关于 NATS 集成 (可选)
-
-该代理包含一个可选的 NATS 对话处理器（NATS Conversation Handler）。当启用时（通过代理内部的 `nats_conversation_handler.yml` 配置文件），此处理器会将对话片段（例如用户消息和代理回复）发布到一个 NATS 主题（subject，例如 `conversation.segments`）。这使得外部服务或监控代理能够订阅这些消息，用于例如实时合规性检查、日志记录、分析或根据对话内容触发下游信号事件等目的。如果您需要监控代理的交互，则需要配置 NATS 连接。
-
-### 配置 NATS 连接 (可选)
-
-默认情况下，代理期望 NATS 服务器（如果在其内部配置中启用）位于 `nats://localhost:4222`。这适用于本地开发，但在 Docker 内部通常不起作用。
-
-要将 Docker 容器连接到在其他地方运行的 NATS 服务器，请将 `AGENT_NATS_URL` 变量添加到您的 `.agent.env` 文件中。此变量优先于代理配置中的默认值。
-
-*   **NATS 在 Docker 主机上运行:** 如果您的 NATS 服务器直接在托管 Docker 的机器上运行：
-    ```dotenv
-    AGENT_NATS_URL=nats://host.docker.internal:4222
-    ```
-    *注意：在 Docker Desktop (Mac/Windows) 上，`host.docker.internal` 会解析为主机在容器内部的 IP 地址。对于 Linux，您可能需要在 `docker run` 命令中使用 `--add-host=host.docker.internal:host-gateway` 或使用主机的特定网络 IP。*
-
-*   **NATS 在另一个 Docker 容器中运行:** 如果 NATS 在同一 Docker 网络上的另一个容器中运行（例如，通过 Docker Compose）：
-    ```dotenv
-    AGENT_NATS_URL=nats://<nats-service-name>:4222
-    ```
-    (将 `<nats-service-name>` 替换为您的 `docker-compose.yml` 中定义的服务名称，或者如果在同一个用户定义的桥接网络上，则替换为容器名称）。
-
-*   **远程 NATS 服务器:** 如果 NATS 在可通过网络访问的不同机器上运行：
-    ```dotenv
-    AGENT_NATS_URL=nats://<remote-nats-ip-or-hostname>:4222
-    ```
-
-如果 `.agent.env` 文件中*未*设置 `AGENT_NATS_URL`，代理将尝试使用默认值 (`nats://localhost:4222`)，除非 NATS 运行在*同一个*容器内，否则这很可能会失败。
 
 3.  **测试 Agent:**
     容器运行后，您可以使用 `curl` 或其他 API 工具，将请求指向 `http://localhost:<主机HTTP端口>` 与 Agent 交互。请记住，第一条消息必须使用 `/createSession` 端点发送，后续消息则使用 `/chat` 端点发送（详情请参阅 [API 用法](#api-用法) 部分）。

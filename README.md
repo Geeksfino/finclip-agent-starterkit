@@ -117,6 +117,118 @@ If you prefer to run each step manually:
    bun run generate-config
    ```
 
+## Running the Agent in Different Environments
+
+Depending on your development or deployment needs, you might run the agent and its NATS dependency in various ways. Here are common configurations:
+
+**Important:** Ensure your LLM provider details (`LLM_PROVIDER_URL`, `LLM_API_KEY`, `LLM_MODEL`) are correctly set, either in the `.agent.env` file for local runs or passed as environment variables (`-e`) for Docker runs.
+
+### 1. Local Development (Agent + NATS Outside Docker)
+
+*   **Description:** Run both the agent and the NATS server directly on your host machine. Ideal for initial development and debugging.
+*   **Prerequisites:**
+    *   NATS server running locally (e.g., `nats-server -js`).
+    *   Bun installed.
+    *   Dependencies installed (`bun install`).
+*   **NATS Configuration:** Ensure `AGENT_NATS_URL` in `.agent.env` points to your local NATS (default is usually `nats://localhost:4222`).
+*   **Command:**
+    ```bash
+    # Start the agent
+    bun start
+
+    # Or start with the inspector UI
+    bun start --inspect
+    ```
+
+### 2. Agent in Docker, NATS Local (Outside Docker)
+
+*   **Description:** Run the agent inside a Docker container, connecting to a NATS server running directly on the host machine.
+*   **Prerequisites:**
+    *   Docker installed.
+    *   NATS server running locally on the host (`nats-server -js`).
+    *   Agent Docker image built (`docker build -t finclip-agent-starterkit .`).
+*   **NATS Configuration:** The `AGENT_NATS_URL` needs to point to the host machine from within the Docker container. Use `nats://host.docker.internal:4222` for Docker Desktop (Mac/Windows) or the host's IP address for Docker on Linux.
+*   **Command:**
+    ```bash
+    # Replace NATS_URL if needed. Assumes .agent.env contains other variables.
+    # Port mapping (-p) should match AGENT_HTTP_PORT and AGENT_STREAM_PORT in .agent.env
+    # Ensure kb.tar.gz and conf/nats_conversation_handler.yml exist locally.
+    docker run -it --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://host.docker.internal:4222" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
+### 3. Docker Compose (Agent + NATS)
+
+*   **Description:** Use Docker Compose to manage both the agent and NATS services together in containers. Recommended for consistent development and deployment environments.
+*   **Prerequisites:**
+    *   Docker and Docker Compose installed.
+    *   A `docker-compose.yml` file defining the `agent` and `nats` services (you might need to create this based on the provided Dockerfile).
+*   **NATS Configuration:** In the `docker-compose.yml`, set the `AGENT_NATS_URL` environment variable for the agent service to point to the NATS service name (e.g., `nats://nats:4222`, assuming the NATS service is named `nats`).
+*   **Command:**
+    ```bash
+    # In the directory with docker-compose.yml
+    docker compose up
+    # Or run in detached mode
+    docker compose up -d
+    ```
+
+### 4. Standalone Agent Docker, NATS in Docker Network
+
+*   **Description:** Run the agent in a Docker container and connect to a NATS server *also* running in a separate Docker container, typically within the same user-defined Docker network.
+*   **Prerequisites:**
+    *   Docker installed.
+    *   NATS server running in a container (e.g., `docker run --name my-nats -d -p 4222:4222 nats:latest -js`).
+    *   Agent Docker image built (`docker build -t finclip-agent-starterkit .`).
+    *   (Optional but recommended) A user-defined Docker network (`docker network create my-network`) with both containers attached.
+*   **NATS Configuration:** Set `AGENT_NATS_URL` to point to the NATS container's name or IP address within the Docker network (e.g., `nats://my-nats:4222` if the NATS container is named `my-nats`).
+*   **Command:**
+    ```bash
+    # Replace NATS_URL if needed. Assumes .agent.env contains other variables.
+    # Assumes both containers are on 'my-network'.
+    # Port mapping (-p) should match AGENT_HTTP_PORT and AGENT_STREAM_PORT in .agent.env
+    # Ensure kb.tar.gz and conf/nats_conversation_handler.yml exist locally.
+    docker run -it --rm --network=my-network \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://my-nats:4222" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
+### 5. Standalone Agent Docker, NATS Remote
+
+*   **Description:** Run the agent in a Docker container connecting to a NATS server hosted elsewhere (e.g., a managed NATS service or another server).
+*   **Prerequisites:**
+    *   Docker installed.
+    *   Agent Docker image built (`docker build -t finclip-agent-starterkit .`).
+    *   Connection details (hostname/IP, port, credentials if any) for the remote NATS server.
+*   **NATS Configuration:** Set `AGENT_NATS_URL` to the full URL of the remote NATS server (e.g., `nats://user:pass@remote.nats.server.com:4222`).
+*   **Command:**
+    ```bash
+    # Replace NATS_URL. Assumes .agent.env contains other variables.
+    # Port mapping (-p) should match AGENT_HTTP_PORT and AGENT_STREAM_PORT in .agent.env
+    # Ensure kb.tar.gz and conf/nats_conversation_handler.yml exist locally.
+    docker run -it --rm \
+      --name finclip-agent \
+      --env-file .agent.env \
+      -p 5678:5678 \
+      -p 5679:5679 \
+      -v "$PWD/kb.tar.gz":/app/kb.tar.gz \
+      -v "$PWD/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
+      -e AGENT_NATS_URL="nats://<user>:<password>@<remote_nats_host>:<remote_nats_port>" \
+      ghcr.io/geeksfino/finclip-agent:latest
+    ```
+
 ## Configuration
 
 After setup, you'll need to:
@@ -197,11 +309,11 @@ This project automatically builds a Docker image and pushes it to the GitHub Con
 2.  **`.agent.env` File:** Create a file named `.agent.env` in the directory where you will run the `docker run` command. Populate it with necessary environment variables:
     ```dotenv
     # Example .agent.env
+    LLM_API_KEY=your_api_key_here        # Replace with your actual API key
     LLM_PROVIDER=openai # Or your chosen provider
-    LLM_API_KEY=sk-your_openai_api_key # Replace with your actual key
     AGENT_HOST=0.0.0.0
-    AGENT_HTTP_PORT=8080 # Port for API requests
-    AGENT_STREAM_PORT=8081 # Port for streaming responses
+    AGENT_HTTP_PORT=5678 # Port for API requests
+    AGENT_STREAM_PORT=5679 # Port for streaming responses
     # Add other required variables for your LLM provider
     ```
 3.  **Knowledge Base (`kb.tar.gz`):** You need a knowledge base archive file (e.g., `kb.tar.gz`). If you don't have one, you can generate it from the sample files by running `bun run kb:use-samples && bun run kb:package` locally in the project first.
@@ -253,13 +365,15 @@ If `AGENT_NATS_URL` is *not* set in `.agent.env`, the agent will attempt to use 
       -p <HOST_HTTP_PORT>:<AGENT_HTTP_PORT> \
       -p <HOST_STREAM_PORT>:<AGENT_STREAM_PORT> \
       -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+      -v "/path/to/your/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
       ghcr.io/geeksfino/finclip-agent:latest
     ```
 
     **Replace the placeholders:**
-    *   `<HOST_HTTP_PORT>:<AGENT_HTTP_PORT>`: Map a port on your host machine to the `AGENT_HTTP_PORT` defined in your `.agent.env` (e.g., `-p 8080:8080`).
-    *   `<HOST_STREAM_PORT>:<AGENT_STREAM_PORT>`: Map a port for the streaming connection, matching `AGENT_STREAM_PORT` (e.g., `-p 8081:8081`).
+    *   `<HOST_HTTP_PORT>:<AGENT_HTTP_PORT>`: Map a port on your host machine to the `AGENT_HTTP_PORT` defined in your `.agent.env` (e.g., `-p 5678:5678`).
+    *   `<HOST_STREAM_PORT>:<AGENT_STREAM_PORT>`: Map a port for the streaming connection, matching `AGENT_STREAM_PORT` (e.g., `-p 5679:5679`).
     *   `"/path/to/your/kb.tar.gz"`: The **absolute path** to your local `kb.tar.gz` file.
+    *   `"/path/to/your/conf/nats_conversation_handler.yml"`: The **absolute path** to your local `nats_conversation_handler.yml` file.
 
 3.  **Test the Agent:**
     Once the container is running, you can interact with it using `curl` or other API tools pointed at `http://localhost:<HOST_HTTP_PORT>`. Remember to use the `/createSession` endpoint for the first message and `/chat` for subsequent messages (see [API Usage](#api-usage) section).
@@ -281,6 +395,7 @@ docker run \
   -p <HOST_STREAM_PORT>:<AGENT_STREAM_PORT> \
   -p 9229:9229 \
   -v "/path/to/your/kb.tar.gz":/app/kb.tar.gz \
+  -v "/path/to/your/conf/nats_conversation_handler.yml":/app/conf/nats_conversation_handler.yml \
   ghcr.io/geeksfino/finclip-agent:latest \
   bun --inspect=0.0.0.0:9229 run start 
 ```
