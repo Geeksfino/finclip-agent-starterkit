@@ -17,6 +17,33 @@ This project is a starter kit for building knowledge base-powered chatbots using
 
 **Important**: When creating your own agent, make sure to follow the strict YAML format requirements for the `brain.md` file as specified in the [finclip-agent documentation](https://github.com/Geeksfino/finclip-agent#agent-brain). The file must only contain the top-level fields: `name`, `role`, `goal`, and `capabilities`. Any other structure will prevent the agent from starting correctly.
 
+## Introduction
+
+The primary goal of the **FinClip Agent Starter Kit** is to provide a rapid setup experience for deploying a conversational AI agent, specifically the `@finogeek/cxagent`. This agent comes with a ready-to-use chatbot frontend that can be easily embedded into any web page, making it ideal for applications like customer support, user engagement, virtual assistants, and more.
+
+This starter kit simplifies the configuration and deployment of the `@finogeek/cxagent`. The `cxagent` itself is part of the broader `finclip-agent` project, which is built upon the powerful and flexible `@finogeek/actgent` AI agent framework.
+
+Key features configured by this starter kit include:
+
+*   **Embeddable Chatbot UI:** A pre-built web component for easy integration.
+*   **Simplified Setup:** Scripts and configurations to get the agent running quickly.
+*   **(Optional) RAG Integration:** Connects the agent to a local knowledge base using Retrieval-Augmented Generation for more context-aware responses. The agent functions without RAG, relying solely on the LLM.
+*   **(Optional) NATS Conversation Streaming:** Allows agent conversation events (messages, session details) to be streamed to a NATS server for external monitoring, compliance, or analytics. The agent functions without NATS.
+
+### Optional Features: RAG and NATS
+
+*   **RAG (Retrieval-Augmented Generation):** If you provide a knowledge base (`kb.tar.gz`), the agent will use RAG to retrieve relevant information and incorporate it into its responses, making them more accurate and specific to your domain. If no knowledge base is configured, the agent will operate purely based on its underlying Large Language Model (LLM).
+*   **NATS Conversation Monitoring:** The `NatsConversationHandler` is an optional component. If configured (via `nats_conversation_handler.yml` and the `AGENT_NATS_URL` environment variable), it connects to a NATS server to publish conversation events. This is useful for external monitoring, logging, or triggering workflows. **If you don't need this, you can ignore the NATS configuration and do not need a NATS server.**
+
+## Features
+
+*   **Embeddable Web Chatbot:** Ready-to-use UI component that can be embedded in any web page.
+*   **(Optional) Knowledge Base Integration:** Powered by a local RAG model, allowing for more accurate and domain-specific responses.
+*   **FinClip Mini-Program Support:**  FinClip/WeChat Mini-Programs frontend to be easily embedded into mobile Apps (requires FinClip SDK).
+*   **Large Language Model Support:** Integrates with various LLMs for human-like conversations.
+*   **Docker Support:** Includes Dockerfiles and examples for easy deployment.
+*   **(Optional) NATS Event Streaming:** For external monitoring, compliance, and analytics.
+
 ## Getting Started
 
 **Important**: This project uses [Bun](https://bun.sh/) instead of Node.js/npm as the JavaScript runtime and package manager.
@@ -320,7 +347,7 @@ This project automatically builds a Docker image and pushes it to the GitHub Con
 
 ### About NATS Integration (Optional)
 
-The agent includes an optional NATS Conversation Handler. When enabled (via the agent's internal `nats_conversation_handler.yml` configuration), this handler publishes conversation segments (like user messages and agent responses) to a NATS subject (e.g., `conversation.segments`). This allows external services or monitoring agents to subscribe to these messages for purposes such as real-time compliance checking, logging, analytics, or triggering downstream signaling events based on conversation content. If you need to monitor agent interactions, configuring the NATS connection is necessary.
+(This explanation is now primarily covered in the Introduction's 'Optional Features' subsection.)
 
 ### Configuring NATS Connection (Optional)
 

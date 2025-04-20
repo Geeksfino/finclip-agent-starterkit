@@ -13,9 +13,36 @@
   <a href="https://github.com/Geeksfino/finclip-agent"><img src="https://img.shields.io/badge/based%20on-finclip--agent-blue.svg" alt="基于 finclip-agent"></a>
 </p>
 
-本项目是一个用于构建基于知识库的聊天机器人的启动套件，使用 finclip-agent 技术。它提供了所有必要的设置和配置工具，以快速部署具有自定义知识的智能代理。其前端聊天界面可以浮窗方式嵌入至网站中，后端则是一个基于[finclip-agent](https://github.com/Geeksfino/finclip-agent)的Agent。
+本项目是一个用于构建基于知识库的聊天机器人的启动套件，使用 finclip-agent 技术。它提供了所有必要的设置和配置工具，以快速部署具有自定义知识的智能体。其前端聊天界面可以浮窗方式嵌入至网站中，后端则是一个基于[finclip-agent](https://github.com/Geeksfino/finclip-agent)的智能体。
 
-**重要提示**：在创建您自己的代理时，请确保严格遵循 [finclip-agent 文档](https://github.com/Geeksfino/finclip-agent#agent-brain)中指定的 `brain.md` 文件的 YAML 格式要求。该文件只能包含以下顶级字段：`name`（名称）、`role`（角色）、`goal`（目标）和 `capabilities`（能力）。任何其他结构都会导致代理无法正常启动。
+**重要提示**：在创建您自己的智能体时，请确保严格遵循 [finclip-agent 文档](https://github.com/Geeksfino/finclip-agent#agent-brain)中指定的 `brain.md` 文件的 YAML 格式要求。该文件只能包含以下顶级字段：`name`（名称）、`role`（角色）、`goal`（目标）和 `capabilities`（能力）。任何其他结构都会导致智能体无法正常启动。
+
+## 引言
+
+**FinClip Agent Starter Kit** 的主要目标是提供一个快速设置体验，用于部署对话式 AI 智能体，特别是 `@finogeek/cxagent`。这个智能体附带一个可以轻松嵌入任何网页的即用型聊天机器人前端，非常适合客户支持、用户互动、虚拟助手等应用场景。
+
+这个启动套件简化了 `@finogeek/cxagent` 的配置和部署。`cxagent` 本身是更广泛的 `finclip-agent` 项目的一部分，该项目基于功能强大且灵活的 `@finogeek/actgent` AI 智能体框架构建。
+
+本启动套件配置的主要功能包括：
+
+*   **可嵌入的聊天机器人 UI：** 预构建的网页组件，便于集成。
+*   **简化的设置：** 脚本和配置，快速启动智能体。
+*   **（可选）RAG 集成：** 将智能体连接到本地知识库，使用检索增强生成技术提供更加上下文感知的回复。智能体可以在没有 RAG 的情况下运行，仅依靠 LLM。
+*   **（可选）NATS 对话流式传输：** 允许将智能体对话事件（消息、会话详情）流式传输到 NATS 服务器，用于外部监控、合规性检查或分析。智能体可以在没有 NATS 的情况下运行。
+
+### 可选功能：RAG 和 NATS
+
+*   **RAG（检索增强生成）：** 如果您提供知识库（`kb.tar.gz`），智能体将使用 RAG 检索相关信息并将其整合到回复中，使回复更加准确且针对您的领域。如果没有配置知识库，智能体将纯粹基于其底层大语言模型（LLM）运行。
+*   **NATS 对话监控：** `NatsConversationHandler` 是一个可选组件。如果配置了它（通过 `nats_conversation_handler.yml` 和 `AGENT_NATS_URL` 环境变量），它会连接到 NATS 服务器发布对话事件。这对外部监控、日志记录或触发工作流很有用。**如果您不需要这个功能，可以忽略 NATS 配置，也不需要 NATS 服务器。**
+
+## 功能
+
+*   **可嵌入的网页聊天机器人：** 即用型 UI 组件，可嵌入任何网页。
+*   **（可选）知识库集成：** 由本地 RAG 模型支持，提供更准确和领域特定的回答。
+*   **FinClip/微信小程序支持：** 可轻松嵌入移动应用的前端（需要 FinClip SDK）。
+*   **大语言模型支持：** 集成各种 LLM，实现类人对话。
+*   **Docker 支持：** 包括 Dockerfile 和示例，便于部署。
+*   **（可选）NATS 事件流：** 用于外部监控、合规性检查和分析。
 
 ## 开始使用
 
@@ -72,10 +99,10 @@ bun run kb:package
 # 配置您的 API 密钥到 .agent.env 文件中（必需）
 # 编辑 .agent.env 文件并添加您的 LLM API 密钥
 
-# 启动代理
+# 启动智能体
 bun start
 
-# 使用检查器界面验证代理是否正常工作
+# 使用检查器界面验证智能体是否正常工作
 bun start --inspect
 # 浏览器访问 http://localhost:5173
 
@@ -246,7 +273,7 @@ bun setup:env
    LLM_MODEL=gpt-4o                    # 或者您选择的其他模型
    LLM_STREAM_MODE=true
    ```
-2. 可选择编辑 `brain.md` 文件，自定义您的代理行为
+2. 可选择编辑 `brain.md` 文件，自定义您的智能体行为
 
 > **注意**：`conf/preproc-mcp.json` 文件包含特定于您本地环境的路径，由设置过程自动生成。不应手动编辑或提交到版本控制系统。
 
@@ -285,9 +312,9 @@ bun run kb:package
 
 > **注意**：`conf/preproc-mcp.json` 文件包含特定于您本地环境的路径，由设置过程自动生成。不应手动编辑或提交到版本控制系统。
 
-## 验证代理
+## 验证智能体
 
-要快速验证代理是否正常工作，您可以使用检查器界面：
+要快速验证智能体是否正常工作，您可以使用检查器界面：
 
 ```bash
 # 使用 start 脚本
@@ -304,12 +331,12 @@ bunx @finogeek/cxagent --inspect
 bunx @finogeek/cxagent --inspect --inspect-port 3000
 ```
 
-这将打开一个网页界面，您可以在其中查看代理的配置，测试其功能，并确保一切设置正确。
+这将打开一个网页界面，您可以在其中查看智能体的配置，测试其功能，并确保一切设置正确。
 
 ## 本地运行 Agent
 
 ```bash
-# 启动代理
+# 启动智能体
 bunx @finogeek/cxagent
 ```
 
@@ -441,10 +468,10 @@ bun run kb:package
 
 这些命令使用 `kb.yml` 中的配置。导出知识库后，将创建 `finclip.tar.gz` 文件，该文件由 MCP 服务器使用。
 
-## 运行代理
+## 运行智能体
 
 ```bash
-# 启动代理
+# 启动智能体
 bunx @finogeek/cxagent
 ```
 
@@ -473,7 +500,7 @@ bunx @finogeek/cxagent
 </html>
 ```
 
-在浏览器中打开此 HTML 文件以与代理交互。
+在浏览器中打开此 HTML 文件以与智能体交互。
 
 ## 项目结构
 
@@ -502,7 +529,7 @@ bunx @finogeek/cxagent
    - 确保 kb-mcp-server 已正确安装
    - 检查虚拟环境是否已激活
 
-3. **代理无法启动**：
+3. **智能体无法启动**：
    - 验证 `.agent.env` 中的 API 密钥
    - 检查嵌入文件是否存在于指定路径
 
