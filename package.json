@@ -1,6 +1,6 @@
 {
   "name": "finclip-agent-starterkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Starter kit for building knowledge base-powered agents with finclip-agent",
   "type": "module",
   "scripts": {
@@ -20,7 +20,7 @@
     "serve:python": "bash embedding-demo/python-cors-server.sh"
   },
   "dependencies": {
-    "@finogeek/cxagent": "^1.2.3",
+    "@finogeek/cxagent": "^1.2.4",
     "yaml": "^2.3.4"
   },
   "devDependencies": {
