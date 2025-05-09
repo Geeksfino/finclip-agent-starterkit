@@ -4,6 +4,7 @@
 
 # Configuration files with user-specific paths
 conf/preproc-mcp.json
+conf/nats_conversation_handler.yml
 
 # Python
 __pycache__/
