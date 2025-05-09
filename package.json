@@ -1,6 +1,6 @@
 {
   "name": "finclip-agent-starterkit",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Starter kit for building knowledge base-powered agents with finclip-agent",
   "type": "module",
   "scripts": {
